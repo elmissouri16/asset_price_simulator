@@ -307,5 +307,145 @@ void main() {
         equals(initialTime.add(const Duration(hours: 1))),
       );
     });
+
+    test('candlestickStream emits all data points', () async {
+      final config = SimulationConfig(
+        initialPrice: 100.0,
+        drift: 0.0,
+        volatility: 0.01,
+        dataPoints: 5,
+        timeInterval: const Duration(hours: 1),
+        outputFormat: OutputFormat.candlestick,
+        includeVolume: true,
+        baseVolume: 1000000,
+        seed: 42,
+      );
+
+      final simulator = RealtimeSimulator(config);
+      final candles = <CandlestickPoint>[];
+
+      await for (final candle in simulator.candlestickStream(
+        interval: Duration.zero, // No delay for tests
+      )) {
+        candles.add(candle);
+      }
+
+      expect(candles.length, equals(5));
+      expect(simulator.isComplete, isTrue);
+    });
+
+    test('priceStream emits all data points', () async {
+      final config = SimulationConfig(
+        initialPrice: 50.0,
+        drift: 0.0,
+        volatility: 0.01,
+        dataPoints: 3,
+        timeInterval: const Duration(minutes: 15),
+        outputFormat: OutputFormat.simple,
+        seed: 42,
+      );
+
+      final simulator = RealtimeSimulator(config);
+      final prices = <SimplePricePoint>[];
+
+      await for (final price in simulator.priceStream(
+        interval: Duration.zero,
+      )) {
+        prices.add(price);
+      }
+
+      expect(prices.length, equals(3));
+      expect(simulator.isComplete, isTrue);
+    });
+
+    test('candlestickStream throws error for wrong output format', () async {
+      final config = SimulationConfig(
+        initialPrice: 100.0,
+        drift: 0.0,
+        volatility: 0.01,
+        dataPoints: 5,
+        timeInterval: const Duration(hours: 1),
+        outputFormat: OutputFormat.simple, // Wrong format
+        seed: 42,
+      );
+
+      final simulator = RealtimeSimulator(config);
+
+      expect(
+        () async {
+          await for (final _ in simulator.candlestickStream(
+            interval: Duration.zero,
+          )) {}
+        },
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('priceStream throws error for wrong output format', () async {
+      final config = SimulationConfig(
+        initialPrice: 100.0,
+        drift: 0.0,
+        volatility: 0.01,
+        dataPoints: 5,
+        timeInterval: const Duration(hours: 1),
+        outputFormat: OutputFormat.candlestick, // Wrong format
+        includeVolume: true,
+        baseVolume: 1000000,
+        seed: 42,
+      );
+
+      final simulator = RealtimeSimulator(config);
+
+      expect(
+        () async {
+          await for (final _ in simulator.priceStream(
+            interval: Duration.zero,
+          )) {}
+        },
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('stream autoStart parameter works correctly', () async {
+      final config = SimulationConfig(
+        initialPrice: 100.0,
+        drift: 0.0,
+        volatility: 0.01,
+        dataPoints: 5,
+        timeInterval: const Duration(hours: 1),
+        outputFormat: OutputFormat.simple,
+        seed: 42,
+      );
+
+      final simulator = RealtimeSimulator(config);
+
+      // Manually advance
+      simulator.skip(2);
+      expect(simulator.currentIndex, equals(2));
+
+      // Stream with autoStart=true should start from current position
+      var count = 0;
+      await for (final _ in simulator.priceStream(
+        interval: Duration.zero,
+        autoStart: true,
+      )) {
+        count++;
+      }
+
+      expect(count, equals(3)); // Only remaining 3 points
+
+      // Reset and try with autoStart=false
+      simulator.skip(2);
+      count = 0;
+
+      await for (final _ in simulator.priceStream(
+        interval: Duration.zero,
+        autoStart: false, // Should reset first
+      )) {
+        count++;
+      }
+
+      expect(count, equals(5)); // All 5 points
+    });
   });
 }

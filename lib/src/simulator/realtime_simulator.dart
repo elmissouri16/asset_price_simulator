@@ -195,4 +195,119 @@ class RealtimeSimulator {
     _currentIndex = _allData.length;
     return remaining;
   }
+
+  /// Creates a Stream that emits data points at the specified interval.
+  ///
+  /// The stream automatically advances through the simulation data,
+  /// emitting one point at each interval. Perfect for reactive UIs
+  /// and async/await patterns.
+  ///
+  /// [interval] - Duration between each emission
+  /// [autoStart] - If true, starts from current index. If false, resets first.
+  ///
+  /// Example:
+  /// ```dart
+  /// final simulator = RealtimeSimulator(config);
+  /// 
+  /// simulator.stream(interval: Duration(seconds: 1)).listen((candle) {
+  ///   updateUI(candle);
+  /// });
+  /// ```
+  Stream<Object> stream({
+    required Duration interval,
+    bool autoStart = true,
+  }) async* {
+    if (!autoStart) reset();
+
+    while (hasMore) {
+      final data = tick();
+      if (data != null) {
+        yield data;
+        if (hasMore) {
+          await Future.delayed(interval);
+        }
+      }
+    }
+  }
+
+  /// Creates a Stream of candlesticks at the specified interval.
+  ///
+  /// Only works if [config.outputFormat] is [OutputFormat.candlestick].
+  /// Throws [StateError] if the output format is not candlestick.
+  ///
+  /// [interval] - Duration between each candlestick emission
+  /// [autoStart] - If true, starts from current index. If false, resets first.
+  ///
+  /// Example:
+  /// ```dart
+  /// simulator.candlestickStream(
+  ///   interval: Duration(milliseconds: 500),
+  /// ).listen((candle) {
+  ///   print('New candle: ${candle.close}');
+  ///   updateChart(candle);
+  /// });
+  /// ```
+  Stream<CandlestickPoint> candlestickStream({
+    required Duration interval,
+    bool autoStart = true,
+  }) async* {
+    if (config.outputFormat != OutputFormat.candlestick) {
+      throw StateError(
+        'candlestickStream() requires OutputFormat.candlestick. '
+        'Current format: ${config.outputFormat}',
+      );
+    }
+
+    if (!autoStart) reset();
+
+    while (hasMore) {
+      final data = tick();
+      if (data != null) {
+        yield data as CandlestickPoint;
+        if (hasMore) {
+          await Future.delayed(interval);
+        }
+      }
+    }
+  }
+
+  /// Creates a Stream of simple price points at the specified interval.
+  ///
+  /// Only works if [config.outputFormat] is [OutputFormat.simple].
+  /// Throws [StateError] if the output format is not simple.
+  ///
+  /// [interval] - Duration between each price emission
+  /// [autoStart] - If true, starts from current index. If false, resets first.
+  ///
+  /// Example:
+  /// ```dart
+  /// simulator.priceStream(
+  ///   interval: Duration(seconds: 1),
+  /// ).listen((price) {
+  ///   print('Price update: \$${price.price}');
+  /// });
+  /// ```
+  Stream<SimplePricePoint> priceStream({
+    required Duration interval,
+    bool autoStart = true,
+  }) async* {
+    if (config.outputFormat != OutputFormat.simple) {
+      throw StateError(
+        'priceStream() requires OutputFormat.simple. '
+        'Current format: ${config.outputFormat}',
+      );
+    }
+
+    if (!autoStart) reset();
+
+    while (hasMore) {
+      final data = tick();
+      if (data != null) {
+        yield data as SimplePricePoint;
+        if (hasMore) {
+          await Future.delayed(interval);
+        }
+      }
+    }
+  }
 }

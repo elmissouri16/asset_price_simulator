@@ -130,7 +130,11 @@ for (final candle in candles) {
 
 ## Real-Time Simulation (New!)
 
-Perfect for game economies and live market simulations:
+Perfect for game economies and live market simulations. Choose between **tick-based** control or **reactive Streams**:
+
+### Option 1: Tick-Based (Manual Control)
+
+Best for game loops where you control the update timing:
 
 ```dart
 import 'dart:async';
@@ -173,12 +177,47 @@ simulator.seekTo(50);    // Jump to point 50
 simulator.reset();       // Start over
 ```
 
+### Option 2: Stream-Based (Reactive)
+
+Best for Flutter apps and reactive patterns:
+
+```dart
+final simulator = RealtimeSimulator(config);
+
+// Get a stream of candlesticks
+await for (final candle in simulator.candlestickStream(
+  interval: Duration(seconds: 1),
+)) {
+  updateUI(candle);
+  print('${candle.openTime}: \$${candle.close}');
+}
+
+// Or use listen for more control
+simulator.candlestickStream(
+  interval: Duration(milliseconds: 500),
+).listen(
+  (candle) => updateChart(candle),
+  onDone: () => print('Market closed'),
+  onError: (error) => handleError(error),
+);
+
+// Broadcast for multiple subscribers
+final broadcast = simulator.candlestickStream(
+  interval: Duration(seconds: 1),
+).asBroadcastStream();
+
+broadcast.listen((c) => updatePriceDisplay(c.close));
+broadcast.listen((c) => updateVolumeDisplay(c.volume));
+broadcast.listen((c) => updateChart(c));
+```
+
 **Features:**
 - ✅ Tick-based progression (one point at a time)
+- ✅ Stream-based reactive API
 - ✅ Peek ahead without consuming data
 - ✅ Full navigation (skip, seek, reset)
 - ✅ Progress tracking
-- ✅ Perfect for game loops and timers
+- ✅ Perfect for game loops and reactive UIs
 
 ## Examples
 
@@ -342,6 +381,8 @@ Volume is simulated using a **log-normal distribution**, ensuring positive value
 - **`RealtimeSimulator`** - Tick-based real-time simulator
   - `tick()` → Next data point
   - `nextCandlestick()` / `nextPrice()` → Type-safe accessors
+  - `candlestickStream(interval)` → Stream of candlesticks
+  - `priceStream(interval)` → Stream of prices
   - `peek(offset)` → Preview without consuming
   - `skip(count)`, `seekTo(index)`, `reset()` → Navigation
   - Properties: `hasMore`, `isComplete`, `progress`, `remaining`
@@ -380,8 +421,11 @@ cd packages/asset_price_simulator
 # Basic usage examples
 dart run example/basic_usage.dart
 
-# Real-time simulation examples
+# Real-time simulation examples (both tick and stream)
 dart run example/realtime_example.dart
+
+# Stream-based simulation examples
+dart run example/stream_example.dart
 
 # Persistence examples
 dart run example/persistence_example.dart
