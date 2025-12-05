@@ -11,6 +11,10 @@ A pure Dart package for simulating realistic crypto and stock price movements wi
 
 📊 **Flexible Output Formats** - Generate simple price points or detailed candlestick (OHLC) data
 
+⏱️ **Time Control** - Configure initial time and get open/close timestamps for candlesticks
+
+🎮 **Real-Time Simulation** - Tick-based simulator for controlled, progressive market updates (perfect for games!)
+
 📈 **Volume Simulation** - Realistic trading volumes using log-normal distribution
 
 💰 **Market Metrics** - Track circulating supply, market cap, and supply growth/reduction
@@ -92,7 +96,8 @@ final simulator = PriceSimulator(config);
 final candles = simulator.generateCandlesticks();
 
 for (final candle in candles) {
-  print('${candle.timestamp}: O=${candle.open} H=${candle.high} '
+  print('${candle.openTime} to ${candle.closeTime}: '
+        'O=${candle.open} H=${candle.high} '
         'L=${candle.low} C=${candle.close} V=${candle.volume}');
 }
 ```
@@ -121,6 +126,59 @@ for (final candle in candles) {
 | `circulatingSupply` | `double?` | `null` | Initial circulating supply |
 | `supplyGrowthRate` | `double?` | `null` | Supply growth per period (0.0001 = 0.01% growth) |
 | `seed` | `int?` | `null` | Random seed for reproducibility |
+| `initialTime` | `DateTime?` | `DateTime.now()` | Starting timestamp for simulation |
+
+## Real-Time Simulation (New!)
+
+Perfect for game economies and live market simulations:
+
+```dart
+import 'dart:async';
+
+final config = SimulationConfig(
+  initialPrice: 100.0,
+  drift: 0.0001,
+  volatility: 0.02,
+  dataPoints: 100,
+  timeInterval: Duration(hours: 1),
+  outputFormat: OutputFormat.candlestick,
+  includeVolume: true,
+  baseVolume: 1000000,
+  initialTime: DateTime(2024, 1, 1, 9, 0), // Optional: set start time
+);
+
+final simulator = RealtimeSimulator(config);
+
+// Update every second with tick-based progression
+Timer.periodic(Duration(seconds: 1), (timer) {
+  final candle = simulator.nextCandlestick();
+  
+  if (candle == null) {
+    timer.cancel();
+    return;
+  }
+  
+  // Update your game UI
+  updatePrice(candle.close);
+  print('Progress: ${(simulator.progress * 100).toStringAsFixed(0)}%');
+});
+
+// Peek ahead without consuming data
+final upcoming = simulator.peekCandlestick(0);
+print('Next price will be: ${upcoming?.close}');
+
+// Full control: skip, seek, reset
+simulator.skip(10);      // Skip 10 points
+simulator.seekTo(50);    // Jump to point 50
+simulator.reset();       // Start over
+```
+
+**Features:**
+- ✅ Tick-based progression (one point at a time)
+- ✅ Peek ahead without consuming data
+- ✅ Full navigation (skip, seek, reset)
+- ✅ Progress tracking
+- ✅ Perfect for game loops and timers
 
 ## Examples
 
@@ -281,6 +339,13 @@ Volume is simulated using a **log-normal distribution**, ensuring positive value
   - `generateCandlesticks()` → `List<CandlestickPoint>`
   - `generate()` → `List<Object>` (uses config.outputFormat)
 
+- **`RealtimeSimulator`** - Tick-based real-time simulator
+  - `tick()` → Next data point
+  - `nextCandlestick()` / `nextPrice()` → Type-safe accessors
+  - `peek(offset)` → Preview without consuming
+  - `skip(count)`, `seekTo(index)`, `reset()` → Navigation
+  - Properties: `hasMore`, `isComplete`, `progress`, `remaining`
+
 - **`SimplePricePoint`** - Basic price data
   - `timestamp`: `DateTime`
   - `price`: `double`
@@ -289,7 +354,9 @@ Volume is simulated using a **log-normal distribution**, ensuring positive value
   - `marketCap`: `double?` (auto-calculated)
 
 - **`CandlestickPoint`** - OHLC candlestick data
-  - `timestamp`: `DateTime`
+  - `timestamp`: `DateTime` (open time)
+  - `openTime`: `DateTime` (getter, same as timestamp)
+  - `closeTime`: `DateTime` (end of candlestick period)
   - `open`, `high`, `low`, `close`: `double`
   - `volume`: `double`
   - `circulatingSupply`: `double?`
@@ -313,6 +380,9 @@ cd packages/asset_price_simulator
 # Basic usage examples
 dart run example/basic_usage.dart
 
+# Real-time simulation examples
+dart run example/realtime_example.dart
+
 # Persistence examples
 dart run example/persistence_example.dart
 ```
@@ -326,9 +396,11 @@ dart test
 
 ## Use Cases
 
+- 🎮 **Game Economies** - Real-time market simulation for trading games
 - 📱 **Demo Applications** - Showcase trading apps without live data
 - 🧪 **Testing** - Test charting and trading logic with controlled data
 - 📊 **Backtesting** - Generate historical-looking price patterns
+- ⏱️ **Live Simulations** - Controlled real-time price updates for demos
 - 🎓 **Education** - Teach financial concepts with realistic simulations
 - 🎨 **Prototyping** - Design UIs and visualizations before connecting real APIs
 

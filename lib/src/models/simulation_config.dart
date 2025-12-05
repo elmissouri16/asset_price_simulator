@@ -53,6 +53,11 @@ class SimulationConfig {
   /// Optional random seed for reproducible results.
   final int? seed;
 
+  /// The initial timestamp for the first data point.
+  /// 
+  /// If not specified, defaults to the current time when the simulator runs.
+  final DateTime? initialTime;
+
   /// Creates a simulation configuration.
   const SimulationConfig({
     required this.initialPrice,
@@ -68,6 +73,7 @@ class SimulationConfig {
     this.circulatingSupply,
     this.supplyGrowthRate,
     this.seed,
+    this.initialTime,
   }) : assert(initialPrice > 0, 'Initial price must be positive'),
        assert(volatility >= 0, 'Volatility must be non-negative'),
        assert(dataPoints > 0, 'Data points must be positive'),
@@ -106,6 +112,9 @@ class SimulationConfig {
           ? (json['supplyGrowthRate'] as num).toDouble()
           : null,
       seed: json['seed'] as int?,
+      initialTime: json['initialTime'] != null
+          ? DateTime.parse(json['initialTime'] as String)
+          : null,
     );
   }
 
@@ -129,6 +138,7 @@ class SimulationConfig {
       if (circulatingSupply != null) 'circulatingSupply': circulatingSupply,
       if (supplyGrowthRate != null) 'supplyGrowthRate': supplyGrowthRate,
       if (seed != null) 'seed': seed,
+      if (initialTime != null) 'initialTime': initialTime!.toIso8601String(),
     };
   }
 

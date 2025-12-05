@@ -15,8 +15,20 @@ class CandlestickPoint {
   /// The closing price for this period.
   final double close;
 
+  /// The closing timestamp for this candlestick period.
+  /// 
+  /// Together with [timestamp] (the open time), this defines the time range
+  /// of this candlestick period.
+  final DateTime closeTime;
+
   /// The trading volume during this period.
   final double volume;
+
+  /// Convenience getter for the opening timestamp.
+  /// 
+  /// This is an alias for [timestamp] to make the API more explicit about
+  /// the candlestick's time range.
+  DateTime get openTime => timestamp;
 
   /// The circulating supply at the end of this period (optional).
   final double? circulatingSupply;
@@ -38,6 +50,7 @@ class CandlestickPoint {
     required this.high,
     required this.low,
     required this.close,
+    required this.closeTime,
     required this.volume,
     this.circulatingSupply,
   });
@@ -50,6 +63,7 @@ class CandlestickPoint {
       high: (json['high'] as num).toDouble(),
       low: (json['low'] as num).toDouble(),
       close: (json['close'] as num).toDouble(),
+      closeTime: DateTime.parse(json['closeTime'] as String),
       volume: (json['volume'] as num).toDouble(),
       circulatingSupply: json['circulatingSupply'] != null
           ? (json['circulatingSupply'] as num).toDouble()
@@ -65,6 +79,7 @@ class CandlestickPoint {
       'high': high,
       'low': low,
       'close': close,
+      'closeTime': closeTime.toIso8601String(),
       'volume': volume,
       if (circulatingSupply != null) 'circulatingSupply': circulatingSupply,
     };

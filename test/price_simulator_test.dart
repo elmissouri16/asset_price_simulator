@@ -238,6 +238,99 @@ void main() {
       final downPrices = PriceSimulator(downConfig).generateSimple();
       expect(downPrices.last.price, lessThan(downPrices.first.price));
     });
+
+    test('uses custom initial time when specified', () {
+      final initialTime = DateTime(2024, 1, 1, 12, 0, 0);
+      final config = SimulationConfig(
+        initialPrice: 100.0,
+        drift: 0.0,
+        volatility: 0.01,
+        dataPoints: 5,
+        timeInterval: const Duration(hours: 1),
+        outputFormat: OutputFormat.simple,
+        initialTime: initialTime,
+        seed: 42,
+      );
+
+      final simulator = PriceSimulator(config);
+      final prices = simulator.generateSimple();
+
+      // First point should start at specified time
+      expect(prices.first.timestamp, equals(initialTime));
+      
+      // Subsequent points should be spaced by timeInterval
+      expect(
+        prices[1].timestamp,
+        equals(initialTime.add(const Duration(hours: 1))),
+      );
+      expect(
+        prices.last.timestamp,
+        equals(initialTime.add(const Duration(hours: 4))),
+      );
+    });
+
+    test('candlestick has correct open and close times', () {
+      final initialTime = DateTime(2024, 6, 15, 9, 0, 0);
+      final config = SimulationConfig(
+        initialPrice: 150.0,
+        drift: 0.0,
+        volatility: 0.02,
+        dataPoints: 3,
+        timeInterval: const Duration(days: 1),
+        outputFormat: OutputFormat.candlestick,
+        includeVolume: true,
+        baseVolume: 1000000,
+        initialTime: initialTime,
+        seed: 123,
+      );
+
+      final simulator = PriceSimulator(config);
+      final candles = simulator.generateCandlesticks();
+
+      // First candle
+      expect(candles[0].openTime, equals(initialTime));
+      expect(candles[0].timestamp, equals(initialTime)); // timestamp is open time
+      expect(
+        candles[0].closeTime,
+        equals(initialTime.add(const Duration(days: 1))),
+      );
+
+      // Second candle starts where first ended
+      expect(candles[1].openTime, equals(candles[0].closeTime));
+      expect(
+        candles[1].closeTime,
+        equals(initialTime.add(const Duration(days: 2))),
+      );
+
+      // Third candle
+      expect(candles[2].openTime, equals(candles[1].closeTime));
+      expect(
+        candles[2].closeTime,
+        equals(initialTime.add(const Duration(days: 3))),
+      );
+    });
+
+    test('candlestick time range equals timeInterval', () {
+      final config = SimulationConfig(
+        initialPrice: 100.0,
+        drift: 0.0,
+        volatility: 0.01,
+        dataPoints: 10,
+        timeInterval: const Duration(hours: 4),
+        outputFormat: OutputFormat.candlestick,
+        includeVolume: true,
+        baseVolume: 1000000,
+        seed: 42,
+      );
+
+      final simulator = PriceSimulator(config);
+      final candles = simulator.generateCandlesticks();
+
+      for (final candle in candles) {
+        final duration = candle.closeTime.difference(candle.openTime);
+        expect(duration, equals(const Duration(hours: 4)));
+      }
+    });
   });
 
   group('SimulationConfig', () {

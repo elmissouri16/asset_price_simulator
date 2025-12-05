@@ -54,3 +54,4 @@ export 'src/models/simulation_state.dart';
 
 // Simulator
 export 'src/simulator/price_simulator.dart';
+export 'src/simulator/realtime_simulator.dart';

@@ -25,7 +25,7 @@ class PriceSimulator {
     final points = <SimplePricePoint>[];
     var currentPrice = config.initialPrice;
     var currentSupply = config.circulatingSupply;
-    var currentTime = DateTime.now();
+    var currentTime = config.initialTime ?? DateTime.now();
 
     for (var i = 0; i < config.dataPoints; i++) {
       // Apply Geometric Brownian Motion: dS = μS dt + σS dW
@@ -78,10 +78,12 @@ class PriceSimulator {
     final candles = <CandlestickPoint>[];
     var currentPrice = config.initialPrice;
     var currentSupply = config.circulatingSupply;
-    var currentTime = DateTime.now();
+    var currentTime = config.initialTime ?? DateTime.now();
 
     for (var i = 0; i < config.dataPoints; i++) {
       final open = currentPrice;
+      final openTime = currentTime;
+      final closeTime = currentTime.add(config.timeInterval);
 
       // Simulate intra-period price movements to get high/low/close
       final intraPeriodMoves = 10; // Number of micro-movements within the period
@@ -121,17 +123,18 @@ class PriceSimulator {
 
       candles.add(
         CandlestickPoint(
-          timestamp: currentTime,
+          timestamp: openTime,
           open: open,
           high: high,
           low: low,
           close: close,
+          closeTime: closeTime,
           volume: volume,
           circulatingSupply: currentSupply,
         ),
       );
 
-      currentTime = currentTime.add(config.timeInterval);
+      currentTime = closeTime;
     }
 
     return candles;

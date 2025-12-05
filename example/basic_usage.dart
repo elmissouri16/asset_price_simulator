@@ -22,6 +22,11 @@ void main() {
 
   // Example 4: Sideways market movement
   sidewaysMarketExample();
+
+  print('\n${'=' * 50}\n');
+
+  // Example 5: Custom initial time with candlestick open/close times
+  customTimeExample();
 }
 
 /// Example 1: Bitcoin-like volatile crypto with simple price points
@@ -174,5 +179,65 @@ double _sqrt(double value) {
     guess = (guess + value / guess) / 2;
   }
   return guess;
+}
+
+/// Example 5: Custom initial time with candlestick open/close times
+void customTimeExample() {
+  print('Example 5: Custom Initial Time with Open/Close Times\\n');
+
+  // Set a specific starting time for the simulation
+  final startTime = DateTime(2024, 1, 1, 9, 0, 0); // Jan 1, 2024 at 9:00 AM
+
+  final config = SimulationConfig(
+    initialPrice: 100.0,
+    drift: 0.0001,
+    volatility: 0.02,
+    dataPoints: 5,
+    timeInterval: const Duration(hours: 4), // 4-hour candlesticks
+    outputFormat: OutputFormat.candlestick,
+    includeVolume: true,
+    baseVolume: 2000000,
+    initialTime: startTime, // Custom start time
+    seed: 555,
+  );
+
+  final simulator = PriceSimulator(config);
+  final candles = simulator.generateCandlesticks();
+
+  print('Candlestick Data with Time Ranges:\n');
+  print('Period | Open Time       | Close Time      | Open    | Close   | High    | Low');
+  print('-' * 85);
+
+  for (var i = 0; i < candles.length; i++) {
+    final c = candles[i];
+    final formatTime = (DateTime dt) {
+      return '${dt.month.toString().padLeft(2, '0')}/${dt.day.toString().padLeft(2, '0')} '
+             '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    };
+
+    print('${(i + 1).toString().padLeft(6)} | '
+          '${formatTime(c.openTime).padRight(15)} | '
+          '${formatTime(c.closeTime).padRight(15)} | '
+          '\$${c.open.toStringAsFixed(2).padLeft(6)} | '
+          '\$${c.close.toStringAsFixed(2).padLeft(6)} | '
+          '\$${c.high.toStringAsFixed(2).padLeft(6)} | '
+          '\$${c.low.toStringAsFixed(2).padLeft(6)}');
+  }
+
+  // Verify time continuity
+  print('\\nTime Continuity Check:');
+  for (var i = 0; i < candles.length - 1; i++) {
+    final currentClose = candles[i].closeTime;
+    final nextOpen = candles[i + 1].openTime;
+    final continuous = currentClose == nextOpen;
+    print('  Candle ${i + 1} close → Candle ${i + 2} open: '
+          '${continuous ? "✓ Continuous" : "✗ Gap detected"}');
+  }
+
+  // Show total time span
+  final totalDuration = candles.last.closeTime.difference(candles.first.openTime);
+  print('\\nTotal time span: ${totalDuration.inHours} hours');
+  print('First candle opens: ${candles.first.openTime}');
+  print('Last candle closes: ${candles.last.closeTime}');
 }
 
