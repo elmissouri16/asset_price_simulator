@@ -85,10 +85,22 @@ class PriceSimulator {
       final openTime = currentTime;
       final closeTime = currentTime.add(config.timeInterval);
 
+      // Prepare lists for intra-period data if requested
+      List<double>? intraPrices;
+      List<DateTime>? intraTimes;
+      
+      if (config.includeIntraPeriodData) {
+        intraPrices = <double>[];
+        intraTimes = <DateTime>[];
+      }
+
       // Simulate intra-period price movements to get high/low/close
-      final intraPeriodMoves = 10; // Number of micro-movements within the period
+      final intraPeriodMoves = config.intraCandleTicks;
       var high = open;
       var low = open;
+
+      // Calculate time step for intra-period ticks
+      final intraPeriodDuration = config.timeInterval.inMicroseconds / intraPeriodMoves;
 
       for (var j = 0; j < intraPeriodMoves; j++) {
         final dt = 1.0 / intraPeriodMoves;
@@ -101,6 +113,15 @@ class PriceSimulator {
         // Apply price range constraints if specified
         if (config.priceRange != null) {
           currentPrice = config.priceRange!.clamp(currentPrice);
+        }
+
+        // Capture intra-period data if requested
+        if (config.includeIntraPeriodData) {
+          intraPrices!.add(currentPrice);
+          final tickTime = openTime.add(
+            Duration(microseconds: (intraPeriodDuration * (j + 1)).round()),
+          );
+          intraTimes!.add(tickTime);
         }
 
         high = math.max(high, currentPrice);
@@ -131,6 +152,8 @@ class PriceSimulator {
           closeTime: closeTime,
           volume: volume,
           circulatingSupply: currentSupply,
+          intraPeriodPrices: intraPrices,
+          intraPeriodTimestamps: intraTimes,
         ),
       );
 

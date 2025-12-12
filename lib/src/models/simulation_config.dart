@@ -58,6 +58,26 @@ class SimulationConfig {
   /// If not specified, defaults to the current time when the simulator runs.
   final DateTime? initialTime;
 
+  /// The number of price movements simulated within each candlestick period.
+  ///
+  /// Higher values produce more realistic candlesticks with better high/low
+  /// accuracy but require more computation. Lower values are faster but may
+  /// miss extremes.
+  ///
+  /// Typical values: 10 (default, balanced), 50-100 (high realism), 3-5 (fast).
+  /// Only affects candlestick output format.
+  final int intraCandleTicks;
+
+  /// Whether to capture and store intra-period price movements.
+  ///
+  /// When true, each candlestick will include the full sequence of simulated
+  /// prices within the period, enabling tick-by-tick playback and animated
+  /// candle formation.
+  ///
+  /// When false (default), only OHLC values are stored, saving memory.
+  /// Only affects candlestick output format.
+  final bool includeIntraPeriodData;
+
   /// Creates a simulation configuration.
   const SimulationConfig({
     required this.initialPrice,
@@ -74,12 +94,54 @@ class SimulationConfig {
     this.supplyGrowthRate,
     this.seed,
     this.initialTime,
+    this.intraCandleTicks = 10,
+    this.includeIntraPeriodData = false,
   }) : assert(initialPrice > 0, 'Initial price must be positive'),
+       assert(intraCandleTicks > 0, 'Intra-candle ticks must be positive'),
        assert(volatility >= 0, 'Volatility must be non-negative'),
        assert(dataPoints > 0, 'Data points must be positive'),
        assert(!includeVolume || baseVolume != null, 
               'Base volume must be provided when includeVolume is true'),
        assert(volumeVolatility >= 0, 'Volume volatility must be non-negative');
+
+  /// Creates a copy of this configuration with the specified fields replaced.
+  SimulationConfig copyWith({
+    double? initialPrice,
+    double? drift,
+    double? volatility,
+    PriceRange? priceRange,
+    int? dataPoints,
+    Duration? timeInterval,
+    OutputFormat? outputFormat,
+    bool? includeVolume,
+    double? baseVolume,
+    double? volumeVolatility,
+    double? circulatingSupply,
+    double? supplyGrowthRate,
+    int? seed,
+    DateTime? initialTime,
+    int? intraCandleTicks,
+    bool? includeIntraPeriodData,
+  }) {
+    return SimulationConfig(
+      initialPrice: initialPrice ?? this.initialPrice,
+      drift: drift ?? this.drift,
+      volatility: volatility ?? this.volatility,
+      priceRange: priceRange ?? this.priceRange,
+      dataPoints: dataPoints ?? this.dataPoints,
+      timeInterval: timeInterval ?? this.timeInterval,
+      outputFormat: outputFormat ?? this.outputFormat,
+      includeVolume: includeVolume ?? this.includeVolume,
+      baseVolume: baseVolume ?? this.baseVolume,
+      volumeVolatility: volumeVolatility ?? this.volumeVolatility,
+      circulatingSupply: circulatingSupply ?? this.circulatingSupply,
+      supplyGrowthRate: supplyGrowthRate ?? this.supplyGrowthRate,
+      seed: seed ?? this.seed,
+      initialTime: initialTime ?? this.initialTime,
+      intraCandleTicks: intraCandleTicks ?? this.intraCandleTicks,
+      includeIntraPeriodData: includeIntraPeriodData ?? this.includeIntraPeriodData,
+    );
+  }
 
   /// Creates a SimulationConfig from a JSON map.
   factory SimulationConfig.fromJson(Map<String, dynamic> json) {
@@ -115,6 +177,8 @@ class SimulationConfig {
       initialTime: json['initialTime'] != null
           ? DateTime.parse(json['initialTime'] as String)
           : null,
+      intraCandleTicks: json['intraCandleTicks'] as int? ?? 10,
+      includeIntraPeriodData: json['includeIntraPeriodData'] as bool? ?? false,
     );
   }
 
@@ -139,6 +203,8 @@ class SimulationConfig {
       if (supplyGrowthRate != null) 'supplyGrowthRate': supplyGrowthRate,
       if (seed != null) 'seed': seed,
       if (initialTime != null) 'initialTime': initialTime!.toIso8601String(),
+      'intraCandleTicks': intraCandleTicks,
+      'includeIntraPeriodData': includeIntraPeriodData,
     };
   }
 

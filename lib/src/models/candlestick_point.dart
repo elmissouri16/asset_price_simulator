@@ -43,6 +43,31 @@ class CandlestickPoint {
     return null;
   }
 
+  /// The chronological sequence of simulated prices within this candle period.
+  ///
+  /// When available, this provides the full price path showing how the price
+  /// moved from [open] to [close], including the points where [high] and [low]
+  /// were reached.
+  ///
+  /// The first element corresponds to [open], the last to [close].
+  /// Only populated when `includeIntraPeriodData` is enabled in config.
+  final List<double>? intraPeriodPrices;
+
+  /// Timestamps for each intra-period price point.
+  ///
+  /// When available, these timestamps correspond 1:1 with [intraPeriodPrices],
+  /// enabling time-series analysis and sub-candle chart rendering.
+  ///
+  /// Only populated when `includeIntraPeriodData` is enabled in config.
+  final List<DateTime>? intraPeriodTimestamps;
+
+  /// Whether this candlestick has intra-period data available.
+  bool get hasIntraPeriodData =>
+      intraPeriodPrices != null && intraPeriodPrices!.isNotEmpty;
+
+  /// The number of intra-period price ticks (0 if no data available).
+  int get intraPeriodCount => intraPeriodPrices?.length ?? 0;
+
   /// Creates a candlestick point.
   const CandlestickPoint({
     required this.timestamp,
@@ -53,6 +78,8 @@ class CandlestickPoint {
     required this.closeTime,
     required this.volume,
     this.circulatingSupply,
+    this.intraPeriodPrices,
+    this.intraPeriodTimestamps,
   });
 
   /// Creates a CandlestickPoint from a JSON map.
@@ -68,6 +95,16 @@ class CandlestickPoint {
       circulatingSupply: json['circulatingSupply'] != null
           ? (json['circulatingSupply'] as num).toDouble()
           : null,
+      intraPeriodPrices: json['intraPeriodPrices'] != null
+          ? (json['intraPeriodPrices'] as List)
+              .map((e) => (e as num).toDouble())
+              .toList()
+          : null,
+      intraPeriodTimestamps: json['intraPeriodTimestamps'] != null
+          ? (json['intraPeriodTimestamps'] as List)
+              .map((e) => DateTime.parse(e as String))
+              .toList()
+          : null,
     );
   }
 
@@ -82,6 +119,10 @@ class CandlestickPoint {
       'closeTime': closeTime.toIso8601String(),
       'volume': volume,
       if (circulatingSupply != null) 'circulatingSupply': circulatingSupply,
+      if (intraPeriodPrices != null) 'intraPeriodPrices': intraPeriodPrices,
+      if (intraPeriodTimestamps != null)
+        'intraPeriodTimestamps':
+            intraPeriodTimestamps!.map((t) => t.toIso8601String()).toList(),
     };
   }
 
